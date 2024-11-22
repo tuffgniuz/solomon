@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./asvs.db"
+}
+
+model SecurityTopic {
+  id                  String            @id @default(uuid())
+  security_topic_id   String            @unique
+  security_topic_name String
+  summary             String?
+  securitySections    SecuritySection[]
+}
+
+model SecuritySection {
+  id                    String            @id @default(uuid())
+  security_section_id   String            @unique
+  security_section_name String
+  summary               String?
+  security_topic_id     String
+  securityTopic         SecurityTopic     @relation(fields: [security_topic_id], references: [security_topic_id])
+  securityControls      SecurityControl[]
+}
+
+model SecurityControl {
+  id                  String          @id @default(uuid())
+  control_id          String          @unique
+  description         String
+  level1              Boolean
+  level2              Boolean
+  level3              Boolean
+  cwe                 Float?
+  nist                String?
+  link                String?
+  security_section_id String
+  securitySection     SecuritySection @relation(fields: [security_section_id], references: [security_section_id])
+}
