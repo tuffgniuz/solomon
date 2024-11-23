@@ -1,5 +1,5 @@
 "use client";
-import { FC, ReactNode, useEffect } from "react";
+import { FC, ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,36 +16,32 @@ const BaseModal: FC<{
   className,
   position = "centered",
 }) => {
-  const modalCenteredClasses = "flex justify-center items-center";
-  const modalSideRClasses = "flex justify-end items-center";
-  const positionClass =
-    position === "centered"
-      ? modalCenteredClasses
-      : position === "side-r"
-        ? modalSideRClasses
-        : "";
-
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape" && onClose) {
-      onClose();
-    }
-  };
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    let modalRoot = document.getElementById("modal-root");
-    modalRoot = document.createElement("div");
-    modalRoot.setAttribute("id", "modal-root");
+    setIsClient(true);
+  }, []);
 
-    document.body.appendChild(modalRoot);
+  useEffect(() => {
+    if (!isClient) return;
+
+    let modalRoot = document.getElementById("modal-root");
+    if (!modalRoot) {
+      modalRoot = document.createElement("div");
+      modalRoot.setAttribute("id", "modal-root");
+      document.body.appendChild(modalRoot);
+    }
 
     return () => {
       if (modalRoot && modalRoot.parentNode) {
         modalRoot.parentNode.removeChild(modalRoot);
       }
     };
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
+    if (!isClient) return;
+
     if (show) {
       window.addEventListener("keydown", handleKeyDown);
     } else {
@@ -54,14 +50,24 @@ const BaseModal: FC<{
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [show]);
+  }, [show, isClient]);
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Escape" && onClose) {
+      onClose();
+    }
+  };
+
+  if (!isClient) {
+    return null;
+  }
 
   const modalRoot = document.getElementById("modal-root");
   if (!modalRoot) return null;
 
   const backdropVariants = {
     hidden: { opacity: 0, backdropFilter: "blur(0px)" },
-    visible: { opacity: 1, backdropFilter: "blur(10px)" },
+    visible: { opacity: 1, backdropFilter: "blur(1px)" },
   };
 
   const modalVariants = {
@@ -79,7 +85,7 @@ const BaseModal: FC<{
           exit="hidden"
           variants={backdropVariants}
           transition={{ duration: 0.3, ease: "easeInOut" }}
-          className={`fixed inset-0 z-50 bg-black bg-opacity-10 ${positionClass}`}
+          className={`fixed inset-0 z-50 bg-black bg-opacity-10 ${position === "centered" ? "flex justify-center items-center" : "flex justify-end items-center"}`}
         >
           <motion.div
             initial="hidden"

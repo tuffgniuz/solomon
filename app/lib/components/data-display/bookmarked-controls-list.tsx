@@ -1,22 +1,8 @@
 "use client";
-
-import { FC, useEffect, useState } from "react";
-import { SecurityTopic } from "@prisma/client";
+import { FC } from "react";
 import { LuCheck } from "react-icons/lu";
 
-const BookmarkedControlsList: FC<{ topics: SecurityTopic[] }> = ({
-  topics,
-}) => {
-  const [bookmarkedControls, setBookmarkedControls] = useState<string[]>([]);
-
-  useEffect(() => {
-    const savedBookmarks = JSON.parse(
-      localStorage.getItem("bookmarkedControls") || "[]",
-    );
-    console.log(savedBookmarks);
-    setBookmarkedControls(savedBookmarks);
-  }, []);
-
+const BookmarkedControlsList: FC = () => {
   const filteredTopics = topics.filter((topic) =>
     topic.securitySections.some((section) =>
       section.securityControls.some((control) =>

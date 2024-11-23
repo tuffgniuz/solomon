@@ -3,12 +3,15 @@ import { FC, useState } from "react";
 import { MdClose, MdOutlineInfo } from "react-icons/md";
 
 import { SecurityTopicWithSections } from "../../types/prisma-types";
+import { Checklist } from "../../types/models";
 
 import useSecurityControlsSearch from "../../hooks/useSecurityControlSearch";
+import useGetAllChecklists from "../../hooks/useGetAllChecklists";
 
 import TopicFilters from "../actions/topic-filters";
 import KnowledgeBaseSearch from "../data-input/knowledge-base-search.tsx";
 import SecuritySectionList from "./security-section-list";
+import ChecklistPicker from "../actions/checklist-picker";
 
 const SecurityTopicList: FC<{ topics: SecurityTopicWithSections[] }> = ({
   topics,
@@ -17,6 +20,10 @@ const SecurityTopicList: FC<{ topics: SecurityTopicWithSections[] }> = ({
     undefined,
   );
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const { data: checklists } = useGetAllChecklists();
+  const [selectedChecklist, setSelectedChecklist] = useState<
+    Checklist | undefined
+  >();
 
   const searchedTopics = useSecurityControlsSearch({ topics, searchTerm });
 
@@ -49,9 +56,14 @@ const SecurityTopicList: FC<{ topics: SecurityTopicWithSections[] }> = ({
 
   return (
     <>
+      <ChecklistPicker
+        checklists={checklists}
+        selectedChecklist={selectedChecklist}
+        setSelectedChecklist={setSelectedChecklist}
+      />
+
       <KnowledgeBaseSearch onSearch={handleSearch} />
 
-      {/* Render the current search term with a clear button */}
       {searchTerm && (
         <div className="flex items-center gap-2 mb-10">
           <div className="flex items-center bg-polar-night-2 text-frost-blue px-4 py-2 rounded-lg">
@@ -87,6 +99,7 @@ const SecurityTopicList: FC<{ topics: SecurityTopicWithSections[] }> = ({
             </div>
 
             <SecuritySectionList
+              selectedChecklist={selectedChecklist}
               sections={topic.securitySections}
               searchTerm={searchTerm}
             />

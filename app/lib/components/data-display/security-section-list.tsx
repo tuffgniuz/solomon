@@ -1,12 +1,15 @@
 import { FC } from "react";
 import { MdBookmarkAdd, MdBookmarks } from "react-icons/md";
 import { LuCheck } from "react-icons/lu";
-import { SecuritySection } from "@prisma/client";
+import { SecurityControl, SecuritySection } from "@prisma/client";
+import { Checklist } from "../../types/models";
+import { addControlToChecklist } from "../../utils/indexeddb";
 
 const SecuritySectionList: FC<{
   sections: SecuritySection[];
   searchTerm: string;
-}> = ({ sections, searchTerm }) => {
+  selectedChecklist: Checklist | undefined;
+}> = ({ sections, searchTerm, selectedChecklist }) => {
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
 
@@ -21,6 +24,23 @@ const SecuritySectionList: FC<{
         part
       ),
     );
+  };
+
+  const handleAddControl = async (control: SecurityControl) => {
+    if (selectedChecklist) {
+      try {
+        await addControlToChecklist(
+          selectedChecklist.id,
+          control.control_id,
+          control.description,
+        );
+        console.log("controlId added:", control.control_id);
+      } catch (error) {
+        console.error("Error adding control to checklist");
+      }
+    } else {
+      console.warn("No checklist selected");
+    }
   };
 
   return (
@@ -44,7 +64,7 @@ const SecuritySectionList: FC<{
                 <th className="p-2">
                   <button className="border border-aurora-green rounded-lg p-2 transition-all duration-300 ease-in-out">
                     {/* A button to bookmark all controls for this section */}
-                    <MdBookmarks color="#A3BE8C" />
+                    <MdBookmarks color="#A3BE8C" size={18} />
                   </button>
                 </th>
               </tr>
@@ -68,9 +88,19 @@ const SecuritySectionList: FC<{
                     {control.level3 && <LuCheck color="#A3BE8C" />}
                   </td>
                   <td className="p-2">
-                    <button className="border border-aurora-green rounded-lg p-2 transition-all duration-300 ease-in-out">
-                      <MdBookmarkAdd color="#A3BE8C" />
+                    <button
+                      onClick={() => handleAddControl(control)}
+                      className="border border-aurora-green rounded-lg p-2 transition-all duration-300 ease-in-out"
+                    >
+                      <MdBookmarkAdd color="#A3BE8C" size={18} />
                     </button>
+                    {/*
+                     * if the control is already part of the checklist it should render a different button
+                     *
+                     * <button className="bg-aurora-green p-2 transition-all duration-300 ease-in-out">
+                     *   <MdBookmardAdded color="#D8DEE9" size={18} />
+                     * </button>
+                     */}
                   </td>
                 </tr>
               ))}

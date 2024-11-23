@@ -22,8 +22,8 @@ const Navbar: FC = () => {
             </Link>
           </li>
           <li>
-            <Link href="/collection" className="flex items-center gap-2">
-              <MdChecklist /> Collection{" "}
+            <Link href="/checklists" className="flex items-center gap-2">
+              <MdChecklist /> Checklists{" "}
               <span className="bg-aurora-purple rounded-full h-6 w-6 flex items-center justify-center">
                 0
               </span>
