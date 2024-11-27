@@ -1,14 +1,24 @@
 "use client";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { GoShieldCheck } from "react-icons/go";
-import { Checklist } from "../../types/models";
-import BaseModal from "./base-modal";
+import { Checklist, SecurityControl } from "../../types/models";
 import ChecklistDetailModal from "./checklist-detail-modal";
+import { getControlsByChecklistId } from "../../utils/indexeddb";
 
 const ChecklistCard: FC<{ checklist: Checklist | undefined }> = ({
   checklist,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [checklistControls, setChecklistControls] = useState<
+    SecurityControl[] | undefined
+  >([]);
+
+  useEffect(() => {
+    (async () => {
+      const controls = await getControlsByChecklistId(checklist?.id);
+      setChecklistControls(controls);
+    })();
+  }, []);
 
   return (
     <>
@@ -23,7 +33,7 @@ const ChecklistCard: FC<{ checklist: Checklist | undefined }> = ({
           <div className="flex checklists-center gap-2">
             <GoShieldCheck color="#BFC9DB" size={18} />{" "}
             <span className="bg-frost-blue text-polar-night-0 rounded-full h-5 w-5 flex checklists-center justify-center">
-              0
+              {checklistControls?.length}
             </span>
           </div>
 
@@ -39,6 +49,7 @@ const ChecklistCard: FC<{ checklist: Checklist | undefined }> = ({
         show={isOpen}
         onClose={() => setIsOpen(false)}
         checklist={checklist}
+        checklistControls={checklistControls}
       />
     </>
   );

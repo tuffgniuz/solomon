@@ -1,15 +1,38 @@
-import { FC } from "react";
-import { MdBookmarkAdd, MdBookmarks } from "react-icons/md";
+import { FC, useEffect, useState } from "react";
 import { LuCheck } from "react-icons/lu";
-import { SecurityControl, SecuritySection } from "@prisma/client";
-import { Checklist } from "../../types/models";
-import { addControlToChecklist } from "../../utils/indexeddb";
+import { MdAdd, MdCheck, MdOutlinePlaylistAdd } from "react-icons/md";
+
+import { SecuritySection } from "@prisma/client";
+import { Checklist, SecurityControl } from "../../types/models";
+
+import {
+  addControlToChecklist,
+  getControlsByChecklistId,
+} from "../../utils/indexeddb";
 
 const SecuritySectionList: FC<{
   sections: SecuritySection[];
   searchTerm: string;
   selectedChecklist: Checklist | undefined;
 }> = ({ sections, searchTerm, selectedChecklist }) => {
+  const [addedControls, setAddedControls] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const fetchAddedControls = async () => {
+      if (selectedChecklist) {
+        try {
+          const controls = await getControlsByChecklistId(selectedChecklist.id);
+          setAddedControls(
+            new Set(controls.map((control) => control.control_id)),
+          );
+        } catch (error) {
+          console.error("Error fetching controls for checklist: ", error);
+        }
+      }
+    };
+    fetchAddedControls();
+  }, [selectedChecklist]);
+
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
 
@@ -29,12 +52,22 @@ const SecuritySectionList: FC<{
   const handleAddControl = async (control: SecurityControl) => {
     if (selectedChecklist) {
       try {
-        await addControlToChecklist(
-          selectedChecklist.id,
-          control.control_id,
-          control.description,
-        );
-        console.log("controlId added:", control.control_id);
+        if (!addedControls.has(control.control_id)) {
+          const checklistControl: SecurityControl = {
+            checklistId: selectedChecklist.id,
+            control_id: control.control_id,
+            description: control.description,
+            level1: control.level1,
+            level2: control.level2,
+            level3: control.level3,
+            id: control.id,
+          };
+
+          await addControlToChecklist(checklistControl);
+          setAddedControls((prev) => new Set(prev).add(control.control_id));
+
+          console.log("controlId added:", control.control_id);
+        }
       } catch (error) {
         console.error("Error adding control to checklist");
       }
@@ -64,13 +97,13 @@ const SecuritySectionList: FC<{
                 <th className="p-2">
                   <button className="border border-aurora-green rounded-lg p-2 transition-all duration-300 ease-in-out">
                     {/* A button to bookmark all controls for this section */}
-                    <MdBookmarks color="#A3BE8C" size={18} />
+                    <MdOutlinePlaylistAdd color="#A3BE8C" size={14} />
                   </button>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {section.securityControls.map((control) => (
+              {section.securityControls.map((control: SecurityControl) => (
                 <tr key={control.id} className="border-b border-b-shadow">
                   <td className="p-2 text-frost-blue">
                     {highlightText(control.control_id, searchTerm)}
@@ -88,19 +121,24 @@ const SecuritySectionList: FC<{
                     {control.level3 && <LuCheck color="#A3BE8C" />}
                   </td>
                   <td className="p-2">
-                    <button
-                      onClick={() => handleAddControl(control)}
-                      className="border border-aurora-green rounded-lg p-2 transition-all duration-300 ease-in-out"
-                    >
-                      <MdBookmarkAdd color="#A3BE8C" size={18} />
-                    </button>
-                    {/*
-                     * if the control is already part of the checklist it should render a different button
-                     *
-                     * <button className="bg-aurora-green p-2 transition-all duration-300 ease-in-out">
-                     *   <MdBookmardAdded color="#D8DEE9" size={18} />
-                     * </button>
-                     */}
+                    {addedControls.has(control.control_id) ? (
+                      <button
+                        className="bg-aurora-green p-2 transition-all duration-300 ease-in-out rounded-lg"
+                        onClick={() =>
+                          console.log("Already added to checklist")
+                        }
+                      >
+                        <MdCheck size={14} />
+                        {/*<MdBookmarkAdded color="#D8DEE9" size={18} />*/}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleAddControl(control)}
+                        className="border border-aurora-green rounded-lg p-2 transition-all duration-300 ease-in-out"
+                      >
+                        <MdAdd color="#A3BE8C" size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

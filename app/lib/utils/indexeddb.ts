@@ -1,5 +1,5 @@
-import { openDB, DBSchema, IDBPDatabase } from "idb";
-import { Checklist } from "../types/models";
+import { openDB, DBSchema } from "idb";
+import { Checklist, SecurityControl } from "../types/models";
 
 interface SolomonDBSchema extends DBSchema {
   checklists: {
@@ -7,17 +7,12 @@ interface SolomonDBSchema extends DBSchema {
     value: Checklist;
   };
   controls: {
-    key: number;
-    value: {
-      id: number;
-      checklistId: number;
-      securityControlId: string;
-      description: string;
-    };
+    key: string;
+    value: SecurityControl;
   };
 }
 
-export const initDB = (): Promise<IDBPDatabase<SolomonDBSchema>> => {
+export const initDB = () => {
   return openDB<SolomonDBSchema>("SolomonDB", 1, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("checklists")) {
@@ -29,9 +24,13 @@ export const initDB = (): Promise<IDBPDatabase<SolomonDBSchema>> => {
       if (!db.objectStoreNames.contains("controls")) {
         const store = db.createObjectStore("controls", {
           keyPath: "id",
-          autoIncrement: true,
         });
         store.createIndex("checklistId", "checklistId");
+        store.createIndex(
+          "controlId_checklistId",
+          ["control_id", "checklistId"],
+          { unique: true },
+        );
       }
     },
   });
@@ -50,17 +49,32 @@ export const getAllChecklists = async () => {
   return db.getAll("checklists");
 };
 
-export const addControlToChecklist = async (
-  checklistId: number,
-  securityControlId: string,
-  description: string,
-) => {
+export const addControlToChecklist = async (control: SecurityControl) => {
   const db = await initDB();
-  const id = await db.add("controls", {
-    checklistId,
-    securityControlId,
-    description,
-  });
+
+  const existingControl = await db.getFromIndex(
+    "controls",
+    "controlId_checklistId",
+    [control.control_id, control.checklistId],
+  );
+
+  if (existingControl) {
+    throw new Error("This control has already been added to the checklist.");
+  }
+
+  const id = await db.add("controls", { ...control });
   return id;
 };
 
+export const deleteControl = async (controlId: number) => {
+  const db = await initDB();
+  await db.delete("controls", controlId);
+};
+
+export const getControlsByChecklistId = async (
+  checklistId: string | undefined,
+) => {
+  if (!checklistId) return [];
+  const db = await initDB();
+  return db.getAllFromIndex("controls", "checklistId", checklistId);
+};
